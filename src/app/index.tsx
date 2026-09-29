@@ -10,7 +10,7 @@ export default function IndexScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#F4A261" />
-        <Text style={styles.caption}>Открываем Финни…</Text>
+        <Text style={styles.caption}>Открываем игру…</Text>
       </View>
     );
   }

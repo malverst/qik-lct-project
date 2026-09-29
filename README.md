@@ -1,56 +1,111 @@
-# Welcome to your Expo app 👋
+# Питомец Финни
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+«Питомец Финни» — мобильная игра для детей 7–11 лет. Ребёнок заботится о виртуальном коте и на игровых монетах учится планировать траты, отличать нужное от желаний и копить на цель.
 
-## Get started
+Все данные хранятся на устройстве. В игре нет регистрации, сервера, рекламы и реальных платежей.
 
-1. Install dependencies
+## О проекте
 
-   ```bash
-   npm install
-   ```
+- Целевая аудитория: дети 7–11 лет.
+- Цель приложения: в игровой форме показать, как устроен личный бюджет.
+- Основная игровая механика: ребёнок распределяет монеты на нужное, желания и накопления, выполняет заказы, покупает вещи и сравнивает план с фактом. Кот растёт от малыша к взрослому, а ошибки не наказывают его болезнью или потерей прогресса.
+- Образовательная задача: научить не выходить за доступные монеты, заранее оставлять запас на еду, откладывать на цель и понимать, почему траты совпали или не совпали с планом.
 
-2. Start the app
+## Возможности
 
-   ```bash
-   npx expo start
-   ```
+- Создание локального профиля без регистрации.
+- Создание кота: имя и цвет шерсти.
+- Игровая валюта — монеты. Каждое изменение баланса видно и объясняется.
+- Планирование бюджета на нужное, желания и накопления. План не меняется от покупок.
+- Обязательные покупки: еда трёх видов. Необязательные: расчёска, мячик, кофты, шляпки и аксессуары.
+- Гардероб: купленные кофты, шляпки и аксессуары надеваются на кота.
+- Накопления и три цели: игровая приставка, большой дом и золотой колокольчик. Цель покупается отдельно, когда в копилке хватает монет.
+- Финансовые задания: кот-курьер, такси и сложные дела. Задания тратят энергию, отдых её восстанавливает.
+- Развитие кота: малыш, подросток и взрослый. Новые дела открываются с уровнем.
+- История закрытых периодов и сравнение плана с фактом.
+- Раздел для взрослого с прогрессом и сбросом профиля.
+- Демонстрационный режим: пять периодов подряд без ожидания реального времени.
 
-In the output, you'll find options to open the app in a
+## Технологический стек
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+| Компонент | Технология |
+|---|---|
+| Mobile | React Native, Expo SDK 57 |
+| Язык | TypeScript |
+| Локальное хранение | AsyncStorage, ключ `finni.game.v1` |
+| Навигация | Expo Router |
+| UI | React Native, expo-image, react-native-svg, react-native-reanimated, lucide-react-native |
+| Тестирование | Node.js test runner через `tsx` |
+| Звук | expo-audio |
+| Целевая платформа | Android |
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Требования
 
-## Get a fresh project
+### Для разработки
 
-When you're ready, run:
+- OS: Windows, macOS или Linux.
+- Node.js: 20 или новее.
+- JDK: 17, если нужна локальная сборка Android.
+- Android Studio: для эмулятора и Android SDK.
+- Android SDK: платформа и build-tools, совместимые с React Native 0.86.
+- Переменная `ANDROID_HOME` должна указывать на установленный Android SDK.
+
+### Для запуска
+
+- Android 8.0 или новее.
+- Для разработки подойдёт эмулятор или устройство с включённой отладкой по USB.
+- Отдельный большой объём RAM не требуется: игра хранит только локальный профиль.
+
+## Установка
+
+### 1. Клонирование
 
 ```bash
-npm run reset-project
+git clone https://github.com/malverst/qik-lct-project.git
+cd qik-lct-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Зависимости
 
-### Other setup steps
+```bash
+npm install
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### 3. Запуск в разработке
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Для Android-эмулятора или подключённого устройства:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm run android
+```
 
-## Join the community
+### 4. Проверки
 
-Join our community of developers creating universal apps.
+```bash
+npx tsc --noEmit
+npm test
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 5. Сборка APK
+
+Локальная release-сборка Android:
+
+```bash
+npx expo prebuild --platform android
+cd android
+./gradlew assembleRelease
+```
+
+На Windows последнюю команду запускают так:
+
+```powershell
+.\gradlew.bat assembleRelease
+```
+
+Готовый файл появляется в `android/app/build/outputs/apk/release/app-release.apk`.
+
+Интернет для игры не нужен. После перезапуска сохраняются профиль, кот, монеты, покупки, накопления, цель и прогресс.

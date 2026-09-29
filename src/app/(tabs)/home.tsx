@@ -1,69 +1,24 @@
 import { Redirect, router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useGame } from '@/components/game-provider';
 import { PetCard } from '@/components/pet-card';
+import { PlanPrompt } from '@/components/plan-prompt';
+import { PetOutfit } from '@/components/pet-outfit';
 import { PrimaryButton } from '@/components/primary-button';
-import { MAX_PET_LEVEL } from '@/content/pet';
-import { reviewPeriod } from '@/domain/period';
+import { HAT_OPTIONS, MAX_PET_LEVEL, SHIRT_OPTIONS, TRINKET_OPTIONS, type AccessoryOption } from '@/content/pet';
+import type { PetCustomization } from '@/types/game';
 import { Spacing } from '@/constants/theme';
-import { playSound } from '@/utils/sounds';
-
-type LevelPerk = {
-  title: string;
-  stageName: string;
-  features: string[];
-};
-
-const LEVEL_PERKS: Record<number, LevelPerk> = {
-  2: {
-    title: 'Финни подрос!',
-    stageName: 'Подросток',
-    features: [
-      'Открылась новая категория дел: «Такси»',
-      'Более крупные награды за поездки',
-      'Финни стал заметно взрослее и сильнее',
-    ],
-  },
-  3: {
-    title: 'Финни стал взрослым!',
-    stageName: 'Взрослый кот',
-    features: [
-      'Открылась категория «Сложные дела»',
-      'Самые ценные заказы и маршруты',
-      'Финни вырос на максимум',
-    ],
-  },
-};
 
 export default function HomeScreen() {
-  const { ready, state, clearGame, acknowledgeLevel } = useGame();
+  const { ready, state, clearGame, wearOutfit } = useGame();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [unlockedLevel, setUnlockedLevel] = useState<number | null>(null);
-  const [planPrompt, setPlanPrompt] = useState(true);
-  const knownLevelRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.pendingLevel !== null) {
-      if (knownLevelRef.current !== null && state.pendingLevel > knownLevelRef.current) playSound('reward');
-      setUnlockedLevel(state.pendingLevel);
-      knownLevelRef.current = state.pet.level;
-      return;
-    }
-    if (knownLevelRef.current === null) {
-      knownLevelRef.current = state.pet.level;
-      return;
-    }
-    if (state.pet.level > knownLevelRef.current) {
-      playSound('reward');
-      setUnlockedLevel(state.pet.level);
-      knownLevelRef.current = state.pet.level;
-    }
-  }, [state?.pendingLevel, state?.pet.level]);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [draft, setDraft] = useState<PetCustomization | null>(null);
+  const [applying, setApplying] = useState(false);
 
   if (!ready) return null;
   if (!state) return <Redirect href="/onboarding" />;
@@ -79,15 +34,20 @@ export default function HomeScreen() {
 
   const guideShop = Boolean(state.period.index === 1 && state.period.plan && !state.period.fact.foodBought);
   const plan = state.period.plan;
-  const levelPerk = unlockedLevel ? LEVEL_PERKS[unlockedLevel] : null;
-  const petText = (text: string) => text.split('Финни').join(state.pet.name);
   const canPet = state.purchasedItemIds.includes('care-brush');
-  const showPlanPrompt = !plan && planPrompt;
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <PetCard pet={state.pet} canPet={canPet} />
+        <PetCard
+          pet={state.pet}
+          canPet={canPet}
+          ownedGoalIds={state.progress.ownedGoalIds}
+          onWardrobe={() => {
+            setDraft(state.pet.customization);
+            setWardrobeOpen(true);
+          }}
+        />
 
         <View style={styles.levelCard}>
           <View style={styles.levelHead}>
@@ -99,9 +59,16 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {plan && reviewPeriod(state)?.canClose ? (
-          <PrimaryButton label="Посмотреть итоги" onPress={() => router.push('/review')} />
+        {plan ? (
+          <View style={styles.spendCard}>
+            <Text style={styles.planHeading}>План периода {state.period.index}</Text>
+            <SpendRow icon="🍎" actual={state.period.fact.mandatorySpent} planned={plan.mandatory} label="Нужное" color="#E07A3D" />
+            <SpendRow icon="🎮" actual={state.period.fact.optionalSpent} planned={plan.optional} label="Желания" color="#5B8DEF" />
+            <SpendRow icon="🏦" actual={state.period.fact.saved} planned={plan.savings} label="Накопления" color="#3FA36C" />
+          </View>
         ) : null}
+
+
 
         <View style={styles.serviceBox}>
           <Text style={styles.serviceTitle}>Служебная информация</Text>
@@ -128,48 +95,63 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <Modal visible={showPlanPrompt} transparent animationType="fade" onRequestClose={() => setPlanPrompt(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setPlanPrompt(false)}>
-          <Pressable style={styles.popup} onPress={() => {}}>
-            <Text style={styles.popupBadge}>Первый шаг</Text>
-            <Text style={styles.popupTitle}>Составь план</Text>
-            <Text style={styles.popupSubtitle}>
-              Разложи {state.period.startingBudget} монет: на нужное, на желания и на накопления.
-            </Text>
-            <PrimaryButton
-              label="Составить план"
-              onPress={() => {
-                setPlanPrompt(false);
-                router.push('/plan');
-              }}
-            />
-            <PrimaryButton label="Позже" tone="quiet" onPress={() => setPlanPrompt(false)} />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <PlanPrompt />
 
-      <Modal visible={unlockedLevel != null} transparent animationType="fade" onRequestClose={() => setUnlockedLevel(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setUnlockedLevel(null)}>
-          <Pressable style={styles.popup} onPress={() => {}}>
-            <Text style={styles.popupBadge}>🎉 Новый уровень</Text>
-            <Text style={styles.popupTitle}>{levelPerk ? petText(levelPerk.title) : `Уровень ${unlockedLevel}`}</Text>
-            <Text style={styles.popupSubtitle}>Стадия роста: {levelPerk?.stageName ?? ''}</Text>
-            <View style={styles.perksList}>
-              {levelPerk?.features.map((feature) => (
-                <Text key={feature} style={styles.perkItem}>
-                  • {petText(feature)}
-                </Text>
-              ))}
+      <Modal
+        visible={wardrobeOpen && draft != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setWardrobeOpen(false)}>
+        <View style={styles.backdrop}>
+          <View style={styles.popup}>
+            <Text style={styles.popupTitle}>Гардероб</Text>
+            <View style={styles.wardrobeStage}>
+              {draft ? <PetOutfit customization={draft} size={240} /> : null}
+              <WardrobeArrow
+                title="Шляпки"
+                place="hat"
+                options={HAT_OPTIONS}
+                selected={draft?.hatId ?? 'none'}
+                owned={state.purchasedItemIds}
+                disabled={applying}
+                onChange={(id) => setDraft((current) => (current ? { ...current, hatId: id } : current))}
+              />
+              <WardrobeArrow
+                title="Аксессуары"
+                place="trinket"
+                options={TRINKET_OPTIONS}
+                selected={draft?.trinketId ?? 'none'}
+                owned={state.purchasedItemIds}
+                disabled={applying}
+                onChange={(id) => setDraft((current) => (current ? { ...current, trinketId: id } : current))}
+              />
+              <WardrobeArrow
+                title="Кофточки"
+                place="shirt"
+                options={SHIRT_OPTIONS}
+                selected={draft?.shirtId ?? 'none'}
+                owned={state.purchasedItemIds}
+                disabled={applying}
+                onChange={(id) => setDraft((current) => (current ? { ...current, shirtId: id } : current))}
+              />
             </View>
             <PrimaryButton
-              label="Отлично!"
+              label={applying ? 'Надеваем…' : 'Применить'}
+              disabled={applying || draft == null}
               onPress={async () => {
-                setUnlockedLevel(null);
-                await acknowledgeLevel();
+                if (!draft) return;
+                setApplying(true);
+                const error = await wearOutfit({
+                  hatId: draft.hatId,
+                  trinketId: draft.trinketId,
+                  shirtId: draft.shirtId,
+                });
+                setApplying(false);
+                if (!error) setWardrobeOpen(false);
               }}
             />
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {guideShop ? (
@@ -181,6 +163,89 @@ export default function HomeScreen() {
         </>
       ) : null}
     </SafeAreaView>
+  );
+}
+
+function WardrobeArrow({
+  title,
+  place,
+  options,
+  selected,
+  owned,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  place: 'hat' | 'trinket' | 'shirt';
+  options: AccessoryOption[];
+  selected: string;
+  owned: string[];
+  disabled: boolean;
+  onChange: (id: string) => void;
+}) {
+  const available = options.filter((item) => item.id === 'none' || owned.includes(item.id));
+  const index = Math.max(
+    0,
+    available.findIndex((item) => item.id === selected),
+  );
+  const current = available[index] ?? available[0];
+
+  function step(direction: -1 | 1) {
+    if (available.length === 0) return;
+    const next = (index + direction + available.length) % available.length;
+    onChange(available[next].id);
+  }
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${title}: назад. Сейчас ${current.label}`}
+        disabled={disabled || available.length < 2}
+        onPress={() => step(-1)}
+        style={({ pressed }) => [styles.arrow, styles.arrowLeft, styles[place], pressed && styles.serviceButtonPressed]}>
+        <Text style={styles.arrowText}>‹</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${title}: вперёд. Сейчас ${current.label}`}
+        disabled={disabled || available.length < 2}
+        onPress={() => step(1)}
+        style={({ pressed }) => [styles.arrow, styles.arrowRight, styles[place], pressed && styles.serviceButtonPressed]}>
+        <Text style={styles.arrowText}>›</Text>
+      </Pressable>
+    </>
+  );
+}
+
+function SpendRow({
+  icon,
+  actual,
+  planned,
+  label,
+  color,
+}: {
+  icon: string;
+  actual: number;
+  planned: number;
+  label: string;
+  color: string;
+}) {
+  const progress = planned > 0 ? Math.min(actual / planned, 1) : actual > 0 ? 1 : 0;
+
+  return (
+    <View style={styles.spendRow} accessibilityLabel={`${label}: ${actual} из ${planned}`}>
+      <View style={styles.spendHead}>
+        <Text style={styles.spendIcon}>{icon}</Text>
+        <Text style={styles.spendLabel}>{label}</Text>
+        <Text style={styles.spendValue}>
+          {actual}/{planned}
+        </Text>
+      </View>
+      <View style={styles.spendTrack}>
+        <View style={[styles.spendFill, { width: `${progress * 100}%`, backgroundColor: color }]} />
+      </View>
+    </View>
   );
 }
 
@@ -217,6 +282,20 @@ const styles = StyleSheet.create({
   levelStage: { flexShrink: 1, color: '#C4622D', fontSize: 16, fontWeight: '700', textAlign: 'right' },
   levelTrack: { height: 16, borderRadius: 8, backgroundColor: '#F0D9C4', overflow: 'hidden' },
   levelFill: { height: '100%', borderRadius: 8, backgroundColor: '#F4A261' },
+  spendCard: {
+    borderRadius: 18,
+    backgroundColor: '#FFF8F3',
+    padding: Spacing.three,
+    gap: Spacing.two,
+  },
+  planHeading: { color: '#1F2430', fontSize: 20, fontWeight: '800' },
+  spendRow: { gap: Spacing.one },
+  spendHead: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  spendIcon: { fontSize: 24, width: 32, textAlign: 'center' },
+  spendLabel: { flex: 1, color: '#1F2430', fontSize: 17, fontWeight: '700' },
+  spendValue: { color: '#1F2430', fontSize: 20, fontWeight: '800' },
+  spendTrack: { height: 16, borderRadius: 8, backgroundColor: '#F0E4D8', overflow: 'hidden' },
+  spendFill: { height: '100%', borderRadius: 8 },
   cardTitle: {
     flexShrink: 1,
     color: '#1F2430',
@@ -279,6 +358,30 @@ const styles = StyleSheet.create({
   popupBadge: { color: '#C4622D', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
   popupTitle: { color: '#1F2430', fontSize: 22, fontWeight: '700' },
   popupSubtitle: { color: '#60646C', fontSize: 15, fontWeight: '600' },
+  summary: { gap: Spacing.one },
+  summaryLine: { color: '#1F2430', fontSize: 22, fontWeight: '800' },
+  wardrobeStage: {
+    height: 240,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrow: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF6EE',
+    borderWidth: 1.5,
+    borderColor: '#F4A261',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowLeft: { left: 0 },
+  arrowRight: { right: 0 },
+  hat: { top: 8 },
+  trinket: { top: 98 },
+  shirt: { top: 168 },
+  arrowText: { color: '#C4622D', fontSize: 28, lineHeight: 32, fontWeight: '700' },
   perksList: { gap: 6, marginVertical: Spacing.one },
   perkItem: { color: '#1F2430', fontSize: 15, lineHeight: 21 },
   note: {

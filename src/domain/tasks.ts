@@ -13,10 +13,10 @@ export const REST_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
 export function finishDelivery(state: GameState, orderId: string, routeId: string): TaskPlayResult {
   if (state.period.status !== 'active' || !state.period.plan) {
-    return { ok: false, message: 'Сначала сохрани план. Потом Финни может разносить заказы.' };
+    return { ok: false, message: `Сначала сохрани план. Потом ${state.pet.name} может разносить заказы.` };
   }
   if (state.pet.needsMeal) {
-    return { ok: false, message: 'Финни проголодался. Сначала покорми его, потом можно брать новый заказ.' };
+    return { ok: false, message: `${state.pet.name} проголодался. Сначала покорми его, потом можно брать новый заказ.` };
   }
 
   const order = findDelivery(orderId);
@@ -57,7 +57,7 @@ export function finishDelivery(state: GameState, orderId: string, routeId: strin
         tasksSinceMeal,
         needsMeal,
       },
-      pendingLevel: growth.leveledUp ? growth.pet.level : state.pendingLevel,
+      pendingLevel: state.pendingLevel,
     },
   };
 }
@@ -68,13 +68,13 @@ export function restPet(state: GameState, now = Date.now()): TaskPlayResult {
     return { ok: false, message: `Отдых будет доступен через ${hours} ч.` };
   }
   if (state.pet.energy >= STARTING_ENERGY) {
-    return { ok: false, message: 'Финни уже бодрый. Можно брать заказ.' };
+    return { ok: false, message: `${state.pet.name} уже бодрый. Можно брать заказ.` };
   }
 
   return {
     ok: true,
     reward: 0,
-    explanation: 'Финни поспал. Энергия снова полная.',
+    explanation: `${state.pet.name} поспал. Энергия снова полная.`,
     needsMeal: state.pet.needsMeal,
     state: {
       ...state,

@@ -116,7 +116,7 @@ test('закрытие периода сохраняет историю и от�
     currentGoalId: 'console',
     period: {
       ...base.period,
-      fact: { mandatorySpent: 20, optionalSpent: 10, saved: 40, foodBought: true },
+      fact: { mandatorySpent: 40, optionalSpent: 20, saved: 40, foodBought: true },
     },
   });
   const result = closePeriod(state);
@@ -124,7 +124,9 @@ test('закрытие периода сохраняет историю и от�
   if (!result.ok) return;
   assert.equal(result.state.period.index, 2);
   assert.equal(result.state.period.status, 'planning');
-  assert.equal(result.state.wallet.savings, 0);
+  assert.equal(result.state.wallet.coins, 140);
+  assert.equal(result.state.wallet.savings, 150);
+  assert.equal(result.state.currentGoalId, 'console');
   assert.equal(result.state.history.length, 1);
 });
 

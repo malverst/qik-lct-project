@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { LockKeyhole } from 'lucide-react-native';
 
+import { CoinFlash } from '@/components/coin-flash';
 import { useGame } from '@/components/game-provider';
 import { PrimaryButton } from '@/components/primary-button';
 import { COMPLEX_DELIVERIES, DELIVERIES, TAXI_DELIVERIES, type DeliveryOrder, type DeliveryRoute } from '@/content/deliveries';
@@ -103,6 +104,7 @@ export default function TasksScreen() {
   const [levelHelp, setLevelHelp] = useState<string | null>(null);
   const [mealHelp, setMealHelp] = useState(false);
   const [openCategory, setOpenCategory] = useState<'courier' | 'taxi' | 'complex' | null>(null);
+  const [flash, setFlash] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const restLeft =
     state && !state.profile.isDemo && state.restAvailableAt !== null ? Math.max(0, state.restAvailableAt - now) : 0;
@@ -139,7 +141,7 @@ export default function TasksScreen() {
     }
     const can = next.routes.some((item) => item.energy <= energy);
     if (!can) {
-      setEnergyHelp(`На «${next.title}» нужно хотя бы ${next.routes[0].energy} энергии, а есть ${energy}. Финни может отдохнуть.`);
+      setEnergyHelp(`На «${next.title}» нужно хотя бы ${next.routes[0].energy} энергии, а есть ${energy}. ${game.pet.name} может отдохнуть.`);
       return;
     }
     setMessage(null);
@@ -168,8 +170,8 @@ export default function TasksScreen() {
       setMessage(finished.error);
       return;
     }
-    playSound('reward');
-    setMessage(finished.explanation);
+    setMessage(null);
+    setFlash(finished.reward);
     if (finished.needsMeal) setMealHelp(true);
     setOrder(null);
     setRoute(null);
@@ -180,9 +182,13 @@ export default function TasksScreen() {
     setBusy(true);
     const error = await rest();
     setBusy(false);
-    if (error) playSound('error');
-    else playSound('rest');
-    setMessage(error ?? 'Финни поспал. Энергия снова полная.');
+    if (error) {
+      playSound('error');
+      setMessage(error);
+      return;
+    }
+    playSound('rest');
+    setMessage(null);
   }
 
   function toggleCategory(category: 'courier' | 'taxi' | 'complex', requiredLevel?: number) {
@@ -224,7 +230,7 @@ export default function TasksScreen() {
           <View style={styles.metaRow}>
             <Text style={styles.meta}>
               {item.kind === 'taxi' ? 'Маршрут на выбор: 2 варианта' : 'Путь на выбор: 2 варианта'}
-              {game.pet.needsMeal ? ' · Сначала покорми Финни' : locked && energy < cheap ? ' · Мало энергии' : ''}
+              {game.pet.needsMeal ? ` · Сначала покорми ${game.pet.name}` : locked && energy < cheap ? ' · Мало энергии' : ''}
             </Text>
           </View>
         </Pressable>
@@ -320,10 +326,10 @@ export default function TasksScreen() {
                   {arrived
                     ? order.kind === 'taxi'
                       ? `Пассажир доставлен на место. Маршрут «${route.label}» пройден.`
-                      : `Финни у двери. Дорога «${route.label}» пройдена.`
+                      : `${game.pet.name} у двери. Дорога «${route.label}» пройдена.`
                     : order.kind === 'taxi'
-                      ? 'Финни везёт пассажира по городу…'
-                      : 'Финни несёт заказ…'}
+                      ? `${game.pet.name} везёт пассажира по городу…`
+                      : `${game.pet.name} несёт заказ…`}
                 </Text>
                 {arrived ? (
                   <PrimaryButton
@@ -345,8 +351,9 @@ export default function TasksScreen() {
             />
           </View>
         )}
-        {message ? <Text style={styles.note}>{message}</Text> : null}
+        {message ? <Text style={styles.error}>{message}</Text> : null}
       </ScrollView>
+      {flash != null ? <CoinFlash amount={flash} onDone={() => setFlash(null)} /> : null}
       <Modal visible={energyHelp != null} transparent animationType="fade" onRequestClose={() => setEnergyHelp(null)}>
         <Pressable style={styles.backdrop} onPress={() => setEnergyHelp(null)}>
           <Pressable style={styles.popup} onPress={() => {}}>
@@ -368,13 +375,13 @@ export default function TasksScreen() {
       <Modal visible={mealHelp} transparent animationType="fade" onRequestClose={() => setMealHelp(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMealHelp(false)}>
           <Pressable style={styles.popup} onPress={() => {}}>
-            <Text style={styles.popupTitle}>Финни проголодался</Text>
+            <Text style={styles.popupTitle}>{game.pet.name} проголодался</Text>
             <Text style={styles.text}>После трёх заказов пора покормить кота. Пока он голоден, новые дела закрыты.</Text>
             <PrimaryButton
               label="Купить еду"
               onPress={() => {
                 setMealHelp(false);
-                router.push('/shop');
+                setTimeout(() => router.push('/shop'), 0);
               }}
             />
             <PrimaryButton label="Позже" tone="quiet" onPress={() => setMealHelp(false)} />
@@ -427,6 +434,7 @@ const styles = StyleSheet.create({
   reward: { color: '#C4622D', fontSize: 18, fontWeight: '700' },
   meta: { color: '#60646C', fontSize: 15, lineHeight: 20 },
   note: { color: '#1F2430', fontSize: 16, lineHeight: 22 },
+  error: { color: '#9A3412', fontSize: 16, fontWeight: '700', lineHeight: 22 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   costBadge: {
     flexDirection: 'row',

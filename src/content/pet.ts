@@ -13,6 +13,8 @@ export type AccessoryOption = {
   kind: AccessoryKind;
   label: string;
   emoji: string;
+  /** Картинка 1:1 поверх кота. null — полупрозрачная заглушка. */
+  image: number | null;
 };
 
 export const STARTING_BUDGET = 100;
@@ -33,21 +35,24 @@ export const COAT_OPTIONS: CoatOption[] = [
 ];
 
 export const SHIRT_OPTIONS: AccessoryOption[] = [
-  { id: 'none', kind: 'shirt', label: 'Без кофты', emoji: '—' },
-  { id: 'stripe', kind: 'shirt', label: 'Полосатая', emoji: '👕' },
-  { id: 'star', kind: 'shirt', label: 'Со звёздочкой', emoji: '✨' },
+  { id: 'none', kind: 'shirt', label: 'Без кофты', emoji: '—', image: null },
+  { id: 'shirt-stripe', kind: 'shirt', label: 'Полосатая', emoji: '👕', image: require('../../assets/images/polosataya-kofta.png') },
+  { id: 'shirt-star', kind: 'shirt', label: 'Со звездой', emoji: '✨', image: require('../../assets/images/star-kofta.png') },
+  { id: 'shirt-warm', kind: 'shirt', label: 'Тёплая', emoji: '🧥', image: require('../../assets/images/warm-kofta.png') },
 ];
 
 export const HAT_OPTIONS: AccessoryOption[] = [
-  { id: 'none', kind: 'hat', label: 'Без шляпы', emoji: '—' },
-  { id: 'cap', kind: 'hat', label: 'Кепка', emoji: '🧢' },
-  { id: 'bow', kind: 'hat', label: 'Бантик', emoji: '🎀' },
+  { id: 'none', kind: 'hat', label: 'Без шляпы', emoji: '—', image: null },
+  { id: 'hat-cap', kind: 'hat', label: 'Кепка', emoji: '🧢', image: require('../../assets/images/kepka.png') },
+  { id: 'hat-bow', kind: 'hat', label: 'Бантик', emoji: '🎀', image: require('../../assets/images/bantik.png') },
+  { id: 'hat-crown', kind: 'hat', label: 'Корона', emoji: '👑', image: require('../../assets/images/crown.png') },
 ];
 
 export const TRINKET_OPTIONS: AccessoryOption[] = [
-  { id: 'none', kind: 'trinket', label: 'Без украшения', emoji: '—' },
-  { id: 'bell', kind: 'trinket', label: 'Колокольчик', emoji: '🔔' },
-  { id: 'scarf', kind: 'trinket', label: 'Шарфик', emoji: '🧣' },
+  { id: 'none', kind: 'trinket', label: 'Без украшения', emoji: '—', image: null },
+  { id: 'trinket-bell', kind: 'trinket', label: 'Колокольчик', emoji: '🔔', image: require('../../assets/images/kolokolchik.png') },
+  { id: 'trinket-scarf', kind: 'trinket', label: 'Шарфик', emoji: '🧣', image: require('../../assets/images/sharf.png') },
+  { id: 'trinket-medal', kind: 'trinket', label: 'Медаль', emoji: '🏅', image: require('../../assets/images/medal.png') },
 ];
 
 export const DEFAULT_CUSTOMIZATION: PetCustomization = {

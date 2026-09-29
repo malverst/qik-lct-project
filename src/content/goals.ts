@@ -23,10 +23,10 @@ export const GOALS: SavingsGoal[] = [
   },
   {
     id: 'rare-item',
-    name: 'Редкий предмет',
+    name: 'Золотой колокольчик',
     cost: 400,
-    description: 'Особая вещь для питомца.',
-    image: null,
+    description: 'Редкая вещица, которая звенит только у самого бережливого кота.',
+    image: require('../../assets/images/kolokolchik-shop.png'),
   },
 ];
 

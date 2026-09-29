@@ -15,6 +15,7 @@ export default function AdultScreen() {
   const [verified, setVerified] = useState(false);
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [openTopic, setOpenTopic] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
 
@@ -40,7 +41,6 @@ export default function AdultScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.gate}>
-          <Text style={styles.kicker}>Только для взрослого</Text>
           <Text style={styles.title}>Раздел взрослого</Text>
           <Text style={styles.lead}>Реши небольшой пример, чтобы открыть информацию о прогрессе.</Text>
           <Text style={styles.example}>3 − 4 = ?</Text>
@@ -70,15 +70,26 @@ export default function AdultScreen() {
   const periodsProgress = Math.min(state.history.length / 5, 1);
   const goalsProgress = Math.min(state.progress.ownedGoalIds.length / 3, 1);
   const topics = [
-    { label: 'Планирование', done: state.history.length > 0 || Boolean(state.period.plan) },
-    { label: 'Покупки и платежи', done: state.period.fact.foodBought || state.history.length > 0 },
-    { label: 'Накопления', done: state.wallet.savings > 0 || state.history.some((item) => item.fact.saved > 0) },
+    {
+      label: 'Планирование',
+      done: state.history.length > 0 || Boolean(state.period.plan),
+      text: 'Ребёнок заранее делит монеты на нужное, желания и накопления. План не меняется от покупок.',
+    },
+    {
+      label: 'Покупки и платежи',
+      done: state.period.fact.foodBought || state.history.length > 0,
+      text: 'Покупка списывает монеты сразу и попадает в факт. Так видно, совпали ли траты с планом.',
+    },
+    {
+      label: 'Накопления',
+      done: state.wallet.savings > 0 || state.history.some((item) => item.fact.saved > 0),
+      text: 'Монеты из кошелька можно отложить в копилку на выбранную цель и при необходимости вернуть.',
+    },
   ];
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.kicker}>Для взрослого</Text>
         <Text style={styles.title}>{state.pet.name}</Text>
         <Text style={styles.lead}>Игровой прогресс на этом устройстве. Реальные данные ребёнка не собираются.</Text>
 
@@ -95,13 +106,25 @@ export default function AdultScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Темы</Text>
-          {topics.map((topic) => (
-            <View key={topic.label} style={styles.topicRow}>
-              <View style={[styles.dot, topic.done && styles.dotDone]} />
-              <Text style={styles.topicLabel}>{topic.label}</Text>
-              <Text style={[styles.topicState, topic.done && styles.topicDone]}>{topic.done ? 'есть опыт' : 'в процессе'}</Text>
-            </View>
-          ))}
+          <Text style={styles.note}>Нажми на тему, чтобы узнать подробности.</Text>
+          {topics.map((topic) => {
+            const open = openTopic === topic.label;
+            return (
+              <Pressable
+                key={topic.label}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                onPress={() => setOpenTopic(open ? null : topic.label)}
+                style={styles.topicButton}>
+                <View style={styles.topicRow}>
+                  <View style={[styles.dot, topic.done && styles.dotDone]} />
+                  <Text style={styles.topicLabel}>{topic.label}</Text>
+                  <Text style={[styles.topicState, topic.done && styles.topicDone]}>{topic.done ? 'есть опыт' : 'в процессе'}</Text>
+                </View>
+                {open ? <Text style={styles.topicText}>{topic.text}</Text> : null}
+              </Pressable>
+            );
+          })}
         </View>
 
         <View style={styles.card}>
@@ -196,7 +219,9 @@ const styles = StyleSheet.create({
   stageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
   stageLabel: { color: '#60646C', fontSize: 15, fontWeight: '600' },
   stageValue: { color: '#1F2430', fontSize: 16, fontWeight: '800' },
-  topicRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  topicButton: { gap: Spacing.two },
+  topicRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  topicText: { color: '#1F2430', fontSize: 15, fontWeight: '500', lineHeight: 21 },
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#D6D8DE' },
   dotDone: { backgroundColor: '#3FA36C' },
   topicLabel: { flex: 1, color: '#1F2430', fontSize: 16, fontWeight: '700' },

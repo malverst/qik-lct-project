@@ -61,11 +61,34 @@ export function saveCoins(state: GameState, amount: number): SavingsResult {
       ...state,
       pet: growth.pet,
       wallet: { coins: state.wallet.coins - amount, savings: nextSaved },
-      pendingLevel: growth.leveledUp ? growth.pet.level : state.pendingLevel,
+      pendingLevel: state.pendingLevel,
       period: {
         ...state.period,
         plan: state.period.plan ? { ...state.period.plan } : null,
         fact: { ...state.period.fact, saved: state.period.fact.saved + amount },
+      },
+    },
+  };
+}
+
+export function buyGoal(state: GameState): SavingsResult {
+  const goal = findGoal(state.currentGoalId);
+  if (!goal) return { ok: false, message: 'Сначала выбери цель.' };
+  if (state.progress.ownedGoalIds.includes(goal.id)) return { ok: false, message: 'Эта цель уже куплена.' };
+  if (state.wallet.savings < goal.cost) {
+    return { ok: false, message: `В копилке ${state.wallet.savings}, а цель стоит ${goal.cost}.` };
+  }
+
+  return {
+    ok: true,
+    state: {
+      ...state,
+      wallet: { ...state.wallet, savings: state.wallet.savings - goal.cost },
+      currentGoalId: null,
+      period: { ...state.period, goalId: null },
+      progress: {
+        ...state.progress,
+        ownedGoalIds: [...state.progress.ownedGoalIds, goal.id],
       },
     },
   };

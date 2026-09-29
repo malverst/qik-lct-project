@@ -86,10 +86,10 @@ export function createGame(input: CreatePetInput): CreateGameResult {
   };
 }
 
-export function createDemoGame(): CreateGameResult {
+export function createDemoGame(input?: CreatePetInput): CreateGameResult {
   const created = createGame({
-    petName: 'Финни',
-    customization: { ...DEFAULT_CUSTOMIZATION, coatColor: 'gray' },
+    petName: input?.petName?.trim() ? input.petName : 'Финни',
+    customization: { ...DEFAULT_CUSTOMIZATION, ...input?.customization },
   });
   if (!created.ok) return created;
 

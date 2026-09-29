@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +9,13 @@ import { PrimaryButton } from '@/components/primary-button';
 import { findGoal } from '@/content/goals';
 import { reviewPeriod } from '@/domain/period';
 import { Spacing } from '@/constants/theme';
+import { playSound } from '@/utils/sounds';
+
+const ICONS: Record<string, string> = {
+  Нужное: '🍎',
+  Желания: '🎮',
+  Накопления: '🏦',
+};
 
 export default function ReviewScreen() {
   const { ready, state, finishPeriod } = useGame();
@@ -26,40 +34,61 @@ export default function ReviewScreen() {
     const error = await finishPeriod();
     setBusy(false);
     if (error) {
+      playSound('error');
       setMessage(error);
       return;
     }
+    playSound('reward');
     router.replace('/home');
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.lead}>Период {state.period.index}. План сравниваем с тем, что вышло на самом деле.</Text>
+        <Text style={styles.title}>Период {state.period.index}</Text>
+
         {goal ? (
-          <Text style={styles.text}>
-            Цель «{goal.name}»: в копилке {state.wallet.savings} из {goal.cost}.
-          </Text>
-        ) : (
-          <Text style={styles.text}>Цель ещё не выбрана.</Text>
-        )}
-        {review?.lines.map((line) => (
-          <View key={line.label} style={styles.card}>
-            <Text style={styles.title}>{line.label}</Text>
-            <Text style={styles.text}>
-              План {line.planned}, вышло {line.actual}
+          <View style={styles.goalCard}>
+            {goal.image != null ? <Image source={goal.image} style={styles.goalImage} contentFit="contain" /> : null}
+            <Text style={styles.goalName}>{goal.name}</Text>
+            <Text style={styles.goalCost}>
+              {state.wallet.savings}/{goal.cost} 🪙
             </Text>
-            <Text style={styles.note}>{line.text}</Text>
           </View>
-        ))}
-        <Text style={styles.note}>{review?.note}</Text>
+        ) : null}
+
+        {review ? (
+          <View style={styles.scoreCard}>
+            <Text style={styles.score}>{review.score}</Text>
+            <Text style={styles.grade}>{review.grade}</Text>
+            <Text style={styles.note}>{review.note}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.card}>
+          {review?.lines.map((line) => (
+            <View key={line.label} style={styles.line}>
+              <View style={styles.row}>
+                <Text style={styles.icon}>{ICONS[line.label] ?? '•'}</Text>
+                <View style={styles.lineText}>
+                  <Text style={styles.label}>{line.label}</Text>
+                  <Text style={styles.note}>{line.text}</Text>
+                </View>
+                <Text style={styles.value}>
+                  {line.actual}/{line.planned}
+                </Text>
+              </View>
+              <Text style={styles.advice}>{line.advice}</Text>
+            </View>
+          ))}
+        </View>
+
         {message ? <Text style={styles.error}>{message}</Text> : null}
         <PrimaryButton
-          label={busy ? 'Закрываем…' : 'Закрыть период'}
+          label={busy ? 'Закрываем…' : 'Новый период'}
           onPress={onClose}
           disabled={busy || !review?.canClose}
         />
-        {!review?.canClose && review?.reason ? <Text style={styles.note}>{review.reason}</Text> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -68,10 +97,29 @@ export default function ReviewScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { padding: Spacing.four, gap: Spacing.three, paddingBottom: Spacing.six },
-  lead: { color: '#1F2430', fontSize: 18, lineHeight: 26 },
-  card: { borderRadius: 18, backgroundColor: '#F7F7F8', padding: Spacing.three, gap: Spacing.one },
-  title: { color: '#1F2430', fontSize: 18, fontWeight: '700' },
-  text: { color: '#1F2430', fontSize: 16, lineHeight: 22 },
-  note: { color: '#60646C', fontSize: 16, lineHeight: 22 },
-  error: { color: '#9A3412', fontSize: 16, lineHeight: 22 },
+  kicker: { color: '#C4622D', fontSize: 14, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  title: { color: '#1F2430', fontSize: 32, fontWeight: '800', lineHeight: 38 },
+  goalCard: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: 24,
+    backgroundColor: '#FFF8F3',
+    padding: Spacing.three,
+  },
+  goalImage: { width: '100%', height: 140 },
+  goalName: { color: '#1F2430', fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  goalCost: { color: '#C4622D', fontSize: 20, fontWeight: '800' },
+  card: { borderRadius: 18, backgroundColor: '#F7F7F8', padding: Spacing.three, gap: Spacing.two },
+  scoreCard: { alignItems: 'center', gap: Spacing.one, paddingVertical: Spacing.two },
+  score: { color: '#C4622D', fontSize: 48, fontWeight: '800', lineHeight: 52 },
+  grade: { color: '#1F2430', fontSize: 22, fontWeight: '800' },
+  note: { color: '#1F2430', fontSize: 15, fontWeight: '600', lineHeight: 20 },
+  line: { gap: Spacing.one },
+  lineText: { flex: 1, gap: 2 },
+  advice: { color: '#1F2430', fontSize: 15, fontWeight: '500', lineHeight: 20 },
+  row: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  icon: { width: 32, fontSize: 24, textAlign: 'center' },
+  label: { color: '#1F2430', fontSize: 17, fontWeight: '800' },
+  value: { color: '#1F2430', fontSize: 22, fontWeight: '800' },
+  error: { color: '#9A3412', fontSize: 16, fontWeight: '700', lineHeight: 22 },
 });

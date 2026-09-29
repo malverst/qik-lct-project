@@ -21,14 +21,6 @@ export default function ProgressScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroIcon}>🌱</Text>
-          <Text style={styles.heroTitle}>Растём вместе</Text>
-          <Text style={styles.heroText}>
-            {state.pet.name} растёт от дел, покупок и монет в копилке.
-          </Text>
-        </View>
-
         <View style={styles.card}>
           <View style={styles.stack}>
             <Text style={styles.title}>Уровень {state.pet.level}</Text>
@@ -37,11 +29,7 @@ export default function ProgressScreen() {
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${progress * 100}%` }]} />
           </View>
-          <Text style={styles.note}>
-            {state.pet.level < MAX_PET_LEVEL
-              ? 'Новые дела, покупки и накопления поднимают уровень.'
-              : `${state.pet.name} достиг максимального уровня.`}
-          </Text>
+
         </View>
 
         <View style={styles.card}>
@@ -53,9 +41,7 @@ export default function ProgressScreen() {
 
         <View style={styles.card}>
           <Text style={styles.title}>История периодов</Text>
-          {state.history.length === 0 ? (
-            <Text style={styles.note}>Когда цель периода будет собрана, здесь появится его итог.</Text>
-          ) : (
+          {state.history.length === 0 ? null : (
             state.history
               .slice()
               .reverse()
@@ -76,10 +62,7 @@ export default function ProgressScreen() {
           )}
         </View>
 
-        <View style={styles.noteBox}>
-          <Text style={styles.noteBoxTitle}>Подсказка</Text>
-          <Text style={styles.noteBoxText}>Сравнивай план и факт: так проще заметить, что получилось хорошо, а что можно изменить в следующий раз.</Text>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );

@@ -36,7 +36,7 @@ export default function OnboardingScreen() {
 
   async function onDemo() {
     setSaving(true);
-    const error = await startDemo();
+    const error = await startDemo({ petName, customization });
     setSaving(false);
     if (error) {
       setMessage(error);
@@ -48,7 +48,6 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.kicker}>Знакомство</Text>
         <Text style={styles.title}>Новый кот</Text>
         <PetPortrait coatColor={customization.coatColor} />
         <Text style={styles.lead}>Назови кота и выбери цвет шерсти.</Text>

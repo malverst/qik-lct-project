@@ -14,6 +14,7 @@ const REASON_LABEL: Record<CoinReason, string> = {
   'start-budget': 'Стартовые монеты',
   purchase: 'Покупка',
   task: 'Задание',
+  'food-help': 'Запас на еду',
 };
 
 export type DebitResult =

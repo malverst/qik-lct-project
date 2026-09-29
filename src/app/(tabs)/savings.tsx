@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,13 +8,14 @@ import { PlanSlider } from '@/components/plan-slider';
 import { useGame } from '@/components/game-provider';
 import { PrimaryButton } from '@/components/primary-button';
 import { GOALS, findGoal, openGoals, type SavingsGoal } from '@/content/goals';
+import { reviewPeriod } from '@/domain/period';
 import { Spacing } from '@/constants/theme';
 import { playSound } from '@/utils/sounds';
 
 const PIGGY_IMAGE = require('../../../assets/images/kopilka-pig.png');
 
 export default function SavingsScreen() {
-  const { ready, state, pickGoal, putInSavings, takeFromSavings, markSavingsIntroSeen } = useGame();
+  const { ready, state, pickGoal, putInSavings, takeFromSavings, buyCurrentGoal, markSavingsIntroSeen } = useGame();
   const [draftGoalId, setDraftGoalId] = useState<string | null>(null);
   const [introOpen, setIntroOpen] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
@@ -25,18 +26,25 @@ export default function SavingsScreen() {
   const [confirmTake, setConfirmTake] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [goalReady, setGoalReady] = useState(false);
 
   useEffect(() => {
     if (!state || state.savingsIntroSeen || state.currentGoalId) return;
     setIntroOpen(true);
   }, [state]);
 
+  const goal = state ? findGoal(state.currentGoalId) : null;
+  const saved = state?.wallet.savings ?? 0;
+  const funded = Boolean(goal && saved >= goal.cost && !state?.progress.ownedGoalIds.includes(goal.id));
+
+  useEffect(() => {
+    if (funded) setGoalReady(true);
+  }, [funded, goal?.id]);
+
   if (!ready) return null;
   if (!state) return <Redirect href="/onboarding" />;
   if (!state.period.plan) return <Redirect href="/plan" />;
 
-  const goal = findGoal(state.currentGoalId);
-  const saved = state.wallet.savings;
   const left = goal ? Math.max(goal.cost - saved, 0) : 0;
   const canSave = goal ? Math.min(state.wallet.coins, left) : 0;
   const progress = goal && goal.cost > 0 ? Math.min(saved / goal.cost, 1) : 0;
@@ -76,6 +84,20 @@ export default function SavingsScreen() {
     setMessage(null);
   }
 
+  async function onBuyGoal() {
+    setBusy(true);
+    const error = await buyCurrentGoal();
+    setBusy(false);
+    if (error) {
+      playSound('error');
+      setMessage(error);
+      return;
+    }
+    playSound('buy');
+    setGoalReady(false);
+    setMessage(null);
+  }
+
   async function onSave() {
     setBusy(true);
     const error = await putInSavings(saveAmount);
@@ -87,8 +109,20 @@ export default function SavingsScreen() {
     }
     playSound('coin');
     setSaveOpen(false);
-    setMessage(`Отложено ${saveAmount}. В копилке стало ${saved + saveAmount}.`);
+    setMessage(null);
     setSaveAmount(0);
+    if (
+      state &&
+      reviewPeriod({
+        ...state,
+        period: {
+          ...state.period,
+          fact: { ...state.period.fact, saved: state.period.fact.saved + saveAmount },
+        },
+      })?.canClose
+    ) {
+      router.push('/review');
+    }
   }
 
   async function onTake() {
@@ -107,7 +141,7 @@ export default function SavingsScreen() {
     }
     playSound('coin');
     setTakeOpen(false);
-    setMessage(`Забрано ${taking}. До цели снова дальше: осталось ${left + taking}.`);
+    setMessage(null);
     setTakeAmount(0);
   }
 
@@ -133,10 +167,6 @@ export default function SavingsScreen() {
           </>
         ) : (
           <>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionIcon}>🎯</Text>
-              <Text style={styles.sectionTitle}>Текущая цель</Text>
-            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Нажми на цель, чтобы изменить её"
@@ -159,12 +189,9 @@ export default function SavingsScreen() {
               <View style={styles.bar}>
                 <View style={[styles.fill, { width: `${progress * 100}%` }]} />
               </View>
-              <Text style={styles.hint}>
-                <Text style={styles.hintIcon}>✏️ </Text>
-                Нажми на цель, чтобы изменить её
-              </Text>
+
             </Pressable>
-            {left === 0 ? <Text style={styles.note}>Цель собрана. Закрыть её можно будет в итогах периода.</Text> : null}
+
             <View style={styles.row}>
               <View style={styles.rowButton}>
                 <PrimaryButton label="Положить" onPress={openSave} disabled={left === 0} />
@@ -173,11 +200,25 @@ export default function SavingsScreen() {
                 <PrimaryButton label="Достать" tone="quiet" onPress={openTake} disabled={saved === 0} />
               </View>
             </View>
+            {funded ? <PrimaryButton label="Купить" onPress={onBuyGoal} disabled={busy} /> : null}
           </>
         )}
 
-        {message ? <Text style={styles.note}>{message}</Text> : null}
+
       </ScrollView>
+
+      <Modal visible={goalReady && funded} transparent animationType="fade">
+        <View style={styles.backdrop}>
+          <View style={styles.popup}>
+            <Text style={styles.popupTitle}>Цель накоплена</Text>
+            <Text style={styles.cardText}>
+              В копилке хватает на «{goal?.name}». Можно купить её сейчас или оставить монеты и купить позже.
+            </Text>
+            <PrimaryButton label={busy ? 'Покупаем…' : 'Купить'} onPress={onBuyGoal} disabled={busy} />
+            <PrimaryButton label="Позже" tone="quiet" onPress={() => setGoalReady(false)} />
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={introOpen}
@@ -196,8 +237,8 @@ export default function SavingsScreen() {
             <PrimaryButton
               label="Выбрать цель"
               onPress={async () => {
-                setIntroOpen(false);
                 await markSavingsIntroSeen();
+                setIntroOpen(false);
                 showGoalPicker();
               }}
             />

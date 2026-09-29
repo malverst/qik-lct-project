@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 
@@ -23,6 +23,15 @@ export function PlanSlider({ label, hint, value, max, limit, color, onChange }: 
   const measure = useRef({ usable, max, limit, value, onChange });
   measure.current = { usable, max, limit, value, onChange };
   const drag = useRef({ startX: 0, startValue: 0 });
+
+  const [draft, setDraft] = useState<string | null>(null);
+
+  function commitDraft(text: string) {
+    const digits = text.replace(/[^0-9]/g, '');
+    const next = digits.length === 0 ? 0 : Number(digits);
+    onChange(Math.min(Math.max(next, 0), limit));
+    setDraft(null);
+  }
 
   const pan = useRef(
     PanResponder.create({
@@ -49,7 +58,18 @@ export function PlanSlider({ label, hint, value, max, limit, color, onChange }: 
       <View style={styles.head}>
         <View style={[styles.dot, { backgroundColor: color }]} />
         <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{value}</Text>
+        <TextInput
+          accessibilityLabel={`${label}: ввести число`}
+          keyboardType="number-pad"
+          value={draft ?? String(value)}
+          onChangeText={setDraft}
+          onFocus={() => setDraft(String(value))}
+          onEndEditing={(event) => commitDraft(event.nativeEvent.text)}
+          onSubmitEditing={(event) => commitDraft(event.nativeEvent.text)}
+          selectTextOnFocus
+          maxLength={4}
+          style={styles.value}
+        />
       </View>
       <Text style={styles.hint}>{hint}</Text>
       <View
@@ -94,11 +114,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   value: {
+    minWidth: 64,
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     color: '#1F2430',
     fontSize: 22,
     fontWeight: '700',
-    minWidth: 40,
-    textAlign: 'right',
+    textAlign: 'center',
+    paddingHorizontal: Spacing.two,
   },
   hint: {
     color: '#60646C',

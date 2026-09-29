@@ -55,7 +55,7 @@ export type Wallet = {
   savings: number;
 };
 
-export type CoinReason = 'start-budget' | 'purchase' | 'task';
+export type CoinReason = 'start-budget' | 'purchase' | 'task' | 'food-help';
 
 export type LearningProgress = {
   doneTaskIds: string[];

@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { GameProvider } from '@/components/game-provider';
+import { LevelUp } from '@/components/level-up';
+import { PeriodComplete } from '@/components/period-complete';
 
 export default function RootLayout() {
   return (
@@ -22,9 +24,11 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" options={{ title: 'Знакомство', headerBackVisible: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="plan" options={{ title: 'План' }} />
-        <Stack.Screen name="review" options={{ title: 'Итоги' }} />
+        <Stack.Screen name="review" options={{ title: 'Итоги', headerBackVisible: false, gestureEnabled: false }} />
         <Stack.Screen name="adult" options={{ title: 'Для взрослого' }} />
       </Stack>
+      <LevelUp />
+      <PeriodComplete />
     </GameProvider>
     </GestureHandlerRootView>
   );

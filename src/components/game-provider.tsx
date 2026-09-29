@@ -2,23 +2,27 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 import { confirmPlan } from '@/domain/budget';
 import { createDemoGame, createGame } from '@/domain/game';
-import { makePurchase } from '@/domain/purchases';
-import { chooseGoal, saveCoins, withdrawSavings } from '@/domain/savings';
+import { grantFoodHelp, makePurchase } from '@/domain/purchases';
+import { buyGoal, chooseGoal, saveCoins, withdrawSavings } from '@/domain/savings';
 import { closePeriod } from '@/domain/period';
 import { finishDelivery, restPet } from '@/domain/tasks';
+import { equipOutfit } from '@/domain/wardrobe';
 import { loadGame, resetGame, saveGame } from '@/storage/game-storage';
-import type { BudgetPlan, CreatePetInput, GameState } from '@/types/game';
+import type { BudgetPlan, CreatePetInput, GameState, PetCustomization } from '@/types/game';
 
 type GameContextValue = {
   ready: boolean;
   state: GameState | null;
   error: string | null;
   startGame: (input: CreatePetInput) => Promise<string | null>;
-  startDemo: () => Promise<string | null>;
+  startDemo: (input: CreatePetInput) => Promise<string | null>;
   lockPlan: (plan: BudgetPlan) => Promise<string | null>;
   buyItem: (itemId: string) => Promise<string | null>;
+  helpWithFood: (amount: number) => Promise<string | null>;
+  wearOutfit: (outfit: Pick<PetCustomization, 'shirtId' | 'hatId' | 'trinketId'>) => Promise<string | null>;
   pickGoal: (goalId: string) => Promise<string | null>;
   putInSavings: (amount: number) => Promise<string | null>;
+  buyCurrentGoal: () => Promise<string | null>;
   takeFromSavings: (amount: number) => Promise<string | null>;
   finishPlay: (orderId: string, routeId: string) => Promise<{
     error: string | null;
@@ -80,8 +84,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return 'Не получилось сохранить игру. Попробуй ещё раз.';
         }
       },
-      async startDemo() {
-        const created = createDemoGame();
+      async startDemo(input) {
+        const created = createDemoGame(input);
         if (!created.ok) return created.message;
 
         try {
@@ -123,6 +127,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return 'Не получилось сохранить покупку. Попробуй ещё раз.';
         }
       },
+      async helpWithFood(amount) {
+        if (!state) return 'Сначала создай кота.';
+        const helped = grantFoodHelp(state, amount);
+        if (!helped.ok) return helped.message;
+        try {
+          await saveGame(helped.state);
+          setState(helped.state);
+          setError(null);
+          return null;
+        } catch {
+          return 'Не получилось добавить монеты. Попробуй ещё раз.';
+        }
+      },
+      async wearOutfit(outfit) {
+        if (!state) return 'Сначала создай кота.';
+        const worn = equipOutfit(state, outfit);
+        if (!worn.ok) return worn.message;
+        try {
+          await saveGame(worn.state);
+          setState(worn.state);
+          setError(null);
+          return null;
+        } catch {
+          return 'Не получилось надеть вещь. Попробуй ещё раз.';
+        }
+      },
       async pickGoal(goalId) {
         if (!state) return 'Сначала создай кота.';
         const picked = chooseGoal(state, goalId);
@@ -147,6 +177,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return null;
         } catch {
           return 'Не получилось положить монеты. Попробуй ещё раз.';
+        }
+      },
+      async buyCurrentGoal() {
+        if (!state) return 'Сначала создай кота.';
+        const bought = buyGoal(state);
+        if (!bought.ok) return bought.message;
+        try {
+          await saveGame(bought.state);
+          setState(bought.state);
+          setError(null);
+          return null;
+        } catch {
+          return 'Не получилось купить цель. Попробуй ещё раз.';
         }
       },
       async takeFromSavings(amount) {
